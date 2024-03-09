@@ -1,1 +1,283 @@
+# House-Price-Prediction-
+# Most important
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+# other
+import missingno as msno
+import os
+
+## Read the Csv file
+data = pd.read_csv("/content/housing.csv.zip")
+
+df_housing=data.copy()
+
+df_housing.head()
+
+# Check info
+df_housing.info()
+
+## Some statistics on data
+df_housing.describe()                            
+
+## check nulls of data
+df_housing.isnull().sum()
+
+# Explore the column ocean_proximity
+ocean_values = df_housing["ocean_proximity"].value_counts()
+ocean_values
+
+plt.figure(figsize=(10,6))
+sns.countplot(x = "ocean_proximity",data=df_housing,order=ocean_values.index)
+
+# showing the percenotge
+for i in range(ocean_values.shape[0]):
+    count = ocean_values[i]
+    strt='{:0.2f}%'.format(100*count / df_housing.shape[0])
+    plt.text(i, count+100, strt, ha='center', color='black', fontsize=14)
+
+# Histogram
+df_housing.hist(bins=25,figsize=(20,10));
+
+# check scatter plot between median_income and median_house_value
+plt.scatter(df_housing["median_income"],df_housing["median_house_value"], alpha=0.1,color="g")
+
+## Try to make median_income into bins
+income_bins = pd.cut(df_housing["median_income"],
+                     bins=[0,1.5,3,4.5,6,np.inf],
+                     labels=["0 - 1.5","1.5 - 3","3 - 4.5","4.5 - 6"," > 6 "])
+
+sns.countplot(x = income_bins)
+
+## Try for (median_house_vaLue) to convert it to chunks (bins)
+## Cut this numericaL feature to categorical for its vaLues to be in range will be in the some category
+## In the foLLowing example -- any value between range (0-100k) will be the same category,I name it (0-100k)
+
+house_value_bins = pd.cut(x=df_housing["median_house_value"],
+                          bins=(-np.inf, 100000, 200000, 300000, 400000, 500000, np.inf),
+                                labels=('-inf to 100k', '100k to 200k', '300k to 400k', '400k to 500k', '500k to 600k', '600k to inf') )
+## countpLot for the above chunks
+plt.figure(figsize=(15,6))
+sns.countplot(x=house_value_bins)
+plt.title('CountPlot of House Value Bins in Dataset', fontsize=14, c='k')
+plt.xlabel('House Value Bins', fontsize=14, c='k')
+plt.ylabel('counts', fontsize=14,c='k')
+plt.show()
+
+# Scatter plot between median_income and median_house_value at each ocean_proximity
+sns.relplot(x="median_income",y='median_house_value',data=df_housing,col="ocean_proximity",col_wrap=3,color="#F27F55")
+
+## Boxplot between ocean_proximity and median_income
+sns.catplot(x='ocean_proximity',y="median_income",kind='box',data=df_housing,palette='deep');
+
+# Scatter plot between longitude and latitude
+plt.figure(figsize=(12,6))
+sc = plt.scatter(df_housing["longitude"],
+                 df_housing["latitude"],
+                 alpha=0.4,
+                 cmap="viridis",
+                 c=df_housing["median_house_value"],
+                s=df_housing["population"]/50,
+                label='population')
+plt.colorbar(sc)
+plt.xlabel("longitude")
+plt.ylabel("latitude")
+plt.title("longitude vs latitude")
+plt.legend()
+plt.show()
+
+# Boxplot for the housing_median_age to check the outliers
+sns.boxplot(y="housing_median_age",data=df_housing,color="#3C6451");
+
+# scatterplot for the housing_median_age with median_house_value to check the outliers with respect to the target (median_house_value)
+sns.scatterplot(x='median_house_value',y="housing_median_age",data=df_housing,color='#3C6451')
+
+# scatterplot for the total_bedrooms with median_house_value to check the outliers with respect to the target (median_house_value)
+sns.scatterplot(y='median_house_value',x="total_bedrooms",data=df_housing,color='#EC55F2')
+
+# Fill the null values in total bedrooms column by random
+Fill_total_bedrooms=df_housing["total_bedrooms"].dropna().unique()
+df_housing['total_bedrooms'] = df_housing['total_bedrooms'].fillna(pd.Series(np.random.choice(Fill_total_bedrooms,size=len(df_housing.index))))
+
+# it seems from the scatter plot to delete from the total_bedrooms column the values higher than 5000 as outliers
+df_housing = df_housing[df_housing["total_bedrooms"]<=5000]
+
+# Boxplot for the households to check the outliers
+sns.boxplot(y="households",data=df_housing,color="#51F3E8")
+
+# scatterplot for the households with median_house_value to check the outliers with respect to the target (median_house_value)
+sns.scatterplot(y='median_house_value',x="households",data=df_housing,color='#51F3E8')
+
+# it seems from the scatter plot to delete from the households column the values higher than 4000 as outliers
+df_housing = df_housing[df_housing["households"]<=4400]
+
+# Boxplot for the population to check the outliers
+sns.boxplot(y="population",data=df_housing,color='#DB7958')
+
+# scatterplot for the housing_median_age with population to check the outliers with respect to the target (median_house_value)
+sns.scatterplot(y='median_house_value',x="population",data=df_housing,color='#DB7958')
+
+# it seems from the scatter plot to delete from the population column the values higher than 10000 as outliers
+df_housing = df_housing[df_housing["population"]<10000]
+
+# Boxplot for the median_income to check the outliers
+sns.boxplot(y="median_income",data=df_housing,color='#1D3070')
+
+# scatterplot for the median_income with median_house_value to check the outliers with respect to the target (median_house_value)
+sns.scatterplot(y='median_house_value',x="median_income",data=df_housing,color='#1D3070')
+
+# it seems from the scatter plot to delete from the median_income column the values higher than 10 as outliers
+df_housing = df_housing[df_housing["median_income"]<=12]
+
+# covert the column ocean_proximity to numeric by labelencoder
+from sklearn.preprocessing import LabelEncoder
+l = LabelEncoder()
+df_housing['ocean_proximity'] = l.fit_transform(df_housing['ocean_proximity'])
+
+df_housing.columns
+
+house = df_housing[['housing_median_age', 'total_rooms',
+       'total_bedrooms', 'population', 'households', 'median_income',
+       'median_house_value', 'ocean_proximity',]]
+
+# split the data to x and y
+# y is 1 column contain the values is the target
+# x contain the values of the rest of columns
+x = house.drop(["median_house_value"],axis=1).values
+y= house['median_house_value'].values
+
+# import the train_test_split
+from sklearn.model_selection import train_test_split
+
+# split the data into train and test
+x_train,x_test,y_train,y_test = train_test_split(x, y, test_size=0.25, random_state=42)
+
+from sklearn.preprocessing import RobustScaler
+ro_scaler = RobustScaler()
+x_train = ro_scaler.fit_transform(x_train)
+x_test = ro_scaler.fit_transform(x_test)
+
+from sklearn import linear_model
+reg = linear_model.LinearRegression()
+reg.fit(x_train,y_train)
+
+reg.score(x_train,y_train)
+
+reg.score(x_test,y_test)
+
+reg.intercept_
+
+reg.coef_
+
+pd.DataFrame(reg.coef_,house.columns[:-1],columns=['coeficients'])
+
+y_pred_1 = reg.predict(x_test)
+
+df_1 = pd.DataFrame({'y_test':y_test,'Y_pred':y_pred_1})
+
+df_1.head()
+
+plt.figure(figsize=(10,8))
+plt.plot(df_1[:50])
+plt.legend(["Actualy","predicted"]);
+
+#import r2_score
+from sklearn.metrics import r2_score
+
+# calculate r2_score for the model
+reg_score = r2_score(y_test,y_pred_1)
+
+# calculate adjust r2_score for the model
+p = len(x_train[0])
+n = len(y_train)
+adj_r2 = 1 - (1-reg_score)*(n-1)/(n-p-1)
+adj_r2
+
+# check that adjust r2_score is less than r2_score for the model
+adj_r2 < reg_score
+
+# import mean_absolute_error and mean_absolute_percentage_error and mean_squared_error
+from sklearn.metrics import mean_absolute_error,mean_absolute_percentage_error,mean_squared_error
+
+# calculate mean_squared_error
+mse = mean_squared_error(y_test , y_pred_1)
+mse
+
+# calculate mean_absolute_error
+mae = mean_absolute_error(y_test , y_pred_1)
+mae
+
+# calculate mean_absolute_percentage_error
+mape = mean_absolute_percentage_error(y_test , y_pred_1)
+mape
+
+# calculate root_mean_squared_error
+reg_mse = mean_squared_error(y_test , y_pred_1)
+reg_rmse = np.sqrt(reg_mse)
+reg_rmse
+
+# calculate r2_score for the model
+rid_score = r2_score(y_test,y_pred_1)
+rid_score
+
+# calculate adjust r2_score for the model
+p = len(x_train[0])
+n = len(y_train)
+adj_r2 = 1 - (1-rid_score)*(n-1)/(n-p-1)
+adj_r2
+
+# check that adjust r2_score is less than r2_score for the model
+adj_r2 < rid_score
+
+# calculate mean_squared_error
+rid_mse = mean_squared_error(y_test , y_pred_1)
+rid_mse
+
+# calculate mean_absolute_error
+rid_mae = mean_absolute_error(y_test , y_pred_1)
+rid_mae
+
+# calculate mean_absolute_percentage_error
+rid_mape = mean_absolute_percentage_error(y_test , y_pred_1)
+rid_mape
+
+# calculate root_mean_squared_error
+rid_mse = mean_squared_error(y_test , y_pred_1)
+rid_rmse = np.sqrt(reg_mse)
+rid_rmse
+
+# calculate r2_score for the model
+lass_score = r2_score(y_test,y_pred_1)
+
+# calculate adjust r2_score for the model
+p = len(x_train[0])
+n = len(y_train)
+adj_r2 = 1 - (1-lass_score)*(n-1)/(n-p-1)
+adj_r2
+
+# calculate mean_squared_error
+lass_mse = mean_squared_error(y_test , y_pred_1)
+lass_mse
+
+# calculate mean_absolute_error
+lass_mae = mean_absolute_error(y_test , y_pred_1)
+lass_mae
+
+# calculate mean_absolute_percentage_error
+lass_mape = mean_absolute_percentage_error(y_test , y_pred_1)
+lass_mape
+
+# calculate root_mean_squared_error
+lass_mse = mean_squared_error(y_test , y_pred_1)
+lass_rmse = np.sqrt(reg_mse)
+lass_rmse
+
+models = ["Linear","Ridge","Lasso"]
+data = [[reg_score,reg_mse],[rid_score,rid_mse],[lass_score,lass_mse]]
+cols = ['r2_score','RMSE']
+pd.DataFrame(data = data , columns=cols , index = models).sort_values(ascending=False , by=["r2_score"])
+
+
+sns.boxplot(y="total_bedrooms",data=

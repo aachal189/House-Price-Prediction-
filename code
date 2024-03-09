@@ -280,4 +280,4 @@ cols = ['r2_score','RMSE']
 pd.DataFrame(data = data , columns=cols , index = models).sort_values(ascending=False , by=["r2_score"])
 
 
-sns.boxplot(y="total_bedrooms",data=
+sns.boxplot(y="total_bedrooms",data=df_housing,color="#EC55F2");
